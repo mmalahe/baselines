@@ -84,6 +84,7 @@ def learn(env, policy_func, *,
         gamma, lam, # advantage estimation
         max_timesteps=0, max_episodes=0, max_iters=0, max_seconds=0,  # time constraint
         callback=None, # you can do anything in the callback, since it takes locals(), globals()
+        resume_callback=None, # callback for resuming training
         adam_epsilon=1e-5,
         schedule='constant' # annealing for stepsize parameters (epsilon and adam)
         ):
@@ -127,7 +128,10 @@ def learn(env, policy_func, *,
 
     U.initialize()
     adam.sync()
-
+    
+    # Resume training
+    if resume_callback: resume_callback(locals(), globals())
+    
     # Prepare for rollouts
     # ----------------------------------------
     seg_gen = traj_segment_generator(pi, env, timesteps_per_batch, stochastic=True)
