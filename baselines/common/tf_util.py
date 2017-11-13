@@ -442,6 +442,7 @@ class _Function(object):
         # Update feed dict with givens.
         for inpt in self.givens:
             feed_dict[inpt] = feed_dict.get(inpt, self.givens[inpt])
+            
         results = get_session().run(self.outputs_update, feed_dict=feed_dict)[:-1]
         if self.check_nan:
             if any(np.isnan(r).any() for r in results):
@@ -728,14 +729,16 @@ _PLACEHOLDER_CACHE = {}  # name -> (placeholder, dtype, shape)
 
 
 def get_placeholder(name, dtype, shape):
+    # If in cache and compatible, fetch from cache
     if name in _PLACEHOLDER_CACHE:
         out, dtype1, shape1 = _PLACEHOLDER_CACHE[name]
-        assert dtype1 == dtype and shape1 == shape
-        return out
-    else:
-        out = tf.placeholder(dtype=dtype, shape=shape, name=name)
-        _PLACEHOLDER_CACHE[name] = (out, dtype, shape)
-        return out
+        if dtype1 == dtype and shape1 == shape:
+            return out
+    
+    # Otherwise make a fresh placeholder
+    out = tf.placeholder(dtype=dtype, shape=shape, name=name)
+    _PLACEHOLDER_CACHE[name] = (out, dtype, shape)
+    return out
 
 
 def get_placeholder_cached(name):
