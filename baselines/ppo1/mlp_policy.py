@@ -18,7 +18,8 @@ class MlpPolicy(object):
         sequence_length = None
 
         ob = U.get_placeholder(name="ob", dtype=tf.float32, shape=[sequence_length] + list(ob_space.shape))
-
+        ac_avail = U.get_placeholder(name="acavail", dtype=tf.float32, shape=[sequence_length] + list(ac_space.shape))
+        
         with tf.variable_scope("obfilter"):
             self.ob_rms = RunningMeanStd(shape=ob_space.shape)
 
@@ -37,18 +38,32 @@ class MlpPolicy(object):
             pdparam = U.concatenate([mean, mean * 0.0 + logstd], axis=1)
         else:
             pdparam = U.dense(last_out, pdtype.param_shape()[0], "polfinal", U.normc_initializer(0.01))
-
-        self.pd = pdtype.pdfromflat(pdparam)
+        
+        # Gated probabilities implementation
+        pdparam_prob = tf.exp(pdparam)/(tf.exp(pdparam)+1.0)       
+        
+        pd_gated_raw = tf.multiply(ac_avail, pdparam_prob)
+        pd_gated_totals = tf.reduce_sum(pd_gated_raw,axis=1)
+        pd_gated = pd_gated_raw/tf.reshape(pd_gated_totals, (-1, 1))
+        
+        pd_gated = tf.clip_by_value(pd_gated, 0.00001, 0.9999) # keep probability non-zero to fend of them nans
+        
+        pd_gated_logit = tf.log(pd_gated/(1.0-pd_gated))
+        
+        self.pd = pdtype.pdfromflat(pd_gated_logit)
+        
+        # Standard implementation
+        #~ self.pd = pdtype.pdfromflat(pdparam)
 
         self.state_in = []
         self.state_out = []
 
         stochastic = tf.placeholder(dtype=tf.bool, shape=())
         ac = U.switch(stochastic, self.pd.sample(), self.pd.mode())
-        self._act = U.function([stochastic, ob], [ac, self.vpred])
+        self._act = U.function([stochastic, ob, ac_avail], [ac, self.vpred])
 
-    def act(self, stochastic, ob):
-        ac1, vpred1 =  self._act(stochastic, ob[None])
+    def act(self, stochastic, ob, ac_avail):
+        ac1, vpred1 =  self._act(stochastic, ob[None], ac_avail[None])
         return ac1[0], vpred1[0]
     def get_variables(self):
         return tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, self.scope)
