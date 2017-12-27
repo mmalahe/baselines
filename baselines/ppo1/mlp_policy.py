@@ -8,8 +8,8 @@ class MlpPolicy(object):
     recurrent = False
     def __init__(self, name, *args, **kwargs):
         with tf.variable_scope(name):
-            self._init(*args, **kwargs)
             self.scope = tf.get_variable_scope().name
+            self._init(*args, **kwargs)            
 
     def _init(self, ob_space, ac_space, hid_size, num_hid_layers, gaussian_fixed_var=True):
         assert isinstance(ob_space, gym.spaces.Box)
@@ -17,8 +17,8 @@ class MlpPolicy(object):
         self.pdtype = pdtype = make_pdtype(ac_space)
         sequence_length = None
 
-        ob = U.get_placeholder(name="ob", dtype=tf.float32, shape=[sequence_length] + list(ob_space.shape))
-        ac_avail = U.get_placeholder(name="acavail", dtype=tf.float32, shape=[sequence_length] + list(ac_space.shape))
+        ob = U.get_placeholder(name=self.scope+"ob", dtype=tf.float32, shape=[sequence_length] + list(ob_space.shape))
+        ac_avail = U.get_placeholder(name=self.scope+"acavail", dtype=tf.float32, shape=[sequence_length] + list(ac_space.shape))
         
         with tf.variable_scope("obfilter"):
             self.ob_rms = RunningMeanStd(shape=ob_space.shape)
@@ -46,7 +46,7 @@ class MlpPolicy(object):
         pd_gated_totals = tf.reduce_sum(pd_gated_raw,axis=1)
         pd_gated = pd_gated_raw/tf.reshape(pd_gated_totals, (-1, 1))
         
-        pd_gated = tf.clip_by_value(pd_gated, 0.00001, 0.9999) # keep probability non-zero to fend of them nans
+        pd_gated = tf.clip_by_value(pd_gated, 0.00001, 0.9999) # keep probability non-zero to fend off them nans
         
         pd_gated_logit = tf.log(pd_gated/(1.0-pd_gated))
         
