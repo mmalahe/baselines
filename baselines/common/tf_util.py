@@ -728,21 +728,41 @@ def in_session(f):
 _PLACEHOLDER_CACHE = {}  # name -> (placeholder, dtype, shape)
 
 
-def get_placeholder(name, dtype, shape):
-    # If in cache and compatible, fetch from cache
-    if name in _PLACEHOLDER_CACHE:
-        out, dtype1, shape1 = _PLACEHOLDER_CACHE[name]
+def get_placeholder(name, dtype, shape, scope=None):
+    if scope != None:
+        scoped_name = scope+"_"+name
+    else:
+        scoped_name = name
+    
+    # If in cache and fully compatible with scope, fetch from cache
+    if scoped_name in _PLACEHOLDER_CACHE:
+        out, dtype1, shape1 = _PLACEHOLDER_CACHE[scoped_name]
         if dtype1 == dtype and shape1 == shape:
             return out
+        else:
+            raise Exception("Placeholder dtype and shape mismatch.")
+            
+    # Next, try to fetch without scope
+    for cached_name in _PLACEHOLDER_CACHE.keys():
+        if cached_name.endswith(name):
+            out, dtype1, shape1 = _PLACEHOLDER_CACHE[cached_name]
+            if dtype1 == dtype and shape1 == shape:
+                return out
+            else:
+                raise Exception("Placeholder dtype and shape mismatch.")
     
     # Otherwise make a fresh placeholder
-    out = tf.placeholder(dtype=dtype, shape=shape, name=name)
-    _PLACEHOLDER_CACHE[name] = (out, dtype, shape)
+    out = tf.placeholder(dtype=dtype, shape=shape, name=scoped_name)
+    _PLACEHOLDER_CACHE[scoped_name] = (out, dtype, shape)
     return out
 
 
-def get_placeholder_cached(name):
-    return _PLACEHOLDER_CACHE[name][0]
+def get_placeholder_cached(name, scope=None):
+    if scope != None:
+        scoped_name = scope+"_"+name
+    else:
+        scoped_name = name
+    return _PLACEHOLDER_CACHE[scoped_name][0]
 
 
 def flattenallbut0(x):

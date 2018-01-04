@@ -17,8 +17,8 @@ class MlpPolicy(object):
         self.pdtype = pdtype = make_pdtype(ac_space)
         sequence_length = None
 
-        ob = U.get_placeholder(name=self.scope+"ob", dtype=tf.float32, shape=[sequence_length] + list(ob_space.shape))
-        ac_avail = U.get_placeholder(name=self.scope+"acavail", dtype=tf.float32, shape=[sequence_length] + list(ac_space.shape))
+        ob = U.get_placeholder(name="ob", dtype=tf.float32, shape=[sequence_length] + list(ob_space.shape), scope=self.scope)
+        ac_avail = U.get_placeholder(name="acavail", dtype=tf.float32, shape=[sequence_length] + list(ac_space.shape), scope=self.scope)
         
         with tf.variable_scope("obfilter"):
             self.ob_rms = RunningMeanStd(shape=ob_space.shape)
