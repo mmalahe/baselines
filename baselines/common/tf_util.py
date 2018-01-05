@@ -742,14 +742,15 @@ def get_placeholder(name, dtype, shape, scope=None):
         else:
             raise Exception("Placeholder dtype and shape mismatch.")
             
-    # Next, try to fetch without scope
-    for cached_name in _PLACEHOLDER_CACHE.keys():
-        if cached_name.endswith(name):
-            out, dtype1, shape1 = _PLACEHOLDER_CACHE[cached_name]
-            if dtype1 == dtype and shape1 == shape:
-                return out
-            else:
-                raise Exception("Placeholder dtype and shape mismatch.")
+    #~ # Next, try to fetch without scope
+    #~ if scope == None:
+        #~ for cached_name in _PLACEHOLDER_CACHE.keys():
+            #~ if cached_name.endswith(name):
+                #~ out, dtype1, shape1 = _PLACEHOLDER_CACHE[cached_name]
+                #~ if dtype1 == dtype and shape1 == shape:
+                    #~ return out
+                #~ else:
+                    #~ raise Exception("Placeholder dtype and shape mismatch.")
     
     # Otherwise make a fresh placeholder
     out = tf.placeholder(dtype=dtype, shape=shape, name=scoped_name)
